@@ -7,44 +7,30 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --accent: #f97316; --dark: #0f172a; --bg: #f8fafc; --success: #22c55e; --danger: #ef4444; }
         body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--dark); padding-bottom: 50px; }
-        
-        /* Navbar */
         nav { background: var(--dark); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         nav h1 { margin: 0; color: var(--accent); font-size: 1.4rem; }
-        .admin-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
-        .admin-btn:hover { background: var(--accent); }
+        .admin-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 10px; cursor: pointer; }
         .admin-btn.active { background: var(--danger); }
-
         .container { width: 92%; max-width: 700px; margin: 30px auto; }
-
-        /* Admin Panel */
         #adminPanel { background: white; padding: 25px; border-radius: 20px; border: 2px solid var(--accent); margin-bottom: 30px; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 15px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
         .file-label { display: block; padding: 15px; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 600; }
         .btn-post { width: 100%; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-        .btn-post:disabled { background: #cbd5e1; cursor: wait; }
-
-        /* Car Card */
         .car-card { background: white; border-radius: 20px; overflow: hidden; margin-bottom: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; }
         .status-tag { position: absolute; top: 15px; left: 15px; padding: 6px 15px; border-radius: 50px; color: white; font-size: 0.75rem; font-weight: bold; z-index: 10; }
-        .tag-available { background: var(--success); }
-        .tag-sold { background: var(--danger); }
+        .tag-available { background: var(--success); } .tag-sold { background: var(--danger); }
         .car-img { width: 100%; height: 320px; object-fit: cover; background: #eee; }
         .details { padding: 20px; }
         .price { font-size: 2rem; color: var(--accent); font-weight: 800; margin: 10px 0; }
-        
-        /* Comments */
         .comment-box { background: #f8fafc; padding: 15px; border-top: 1px solid #eee; }
         .comment-item { background: white; padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 4px solid var(--accent); font-size: 0.9rem; }
-        .del-btn { color: var(--danger); border: none; background: none; font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -56,11 +42,11 @@
 
 <div class="container">
     <div id="adminPanel">
-        <h3 style="margin-top:0">✨ ลงประกาศใหม่</h3>
+        <h3 style="margin-top:0">✨ ลงประกาศใหม่ (Imgbb Storage)</h3>
         <div class="form-group"><input type="text" id="carTitle" placeholder="ชื่อรุ่นรถ / ปี"></div>
         <div class="form-group"><input type="text" id="carPrice" placeholder="ราคา (บาท)"></div>
         <div class="form-group">
-            <label for="carFile" class="file-label" id="fileLabel">📁 เลือกรูปจากเครื่อง (ขนาดเท่าไหร่ก็ได้)</label>
+            <label for="carFile" class="file-label" id="fileLabel">📁 เลือกรูปจากเครื่อง (ส่งไป Imgbb)</label>
             <input type="file" id="carFile" accept="image/*" style="display:none" onchange="updateLabel()">
         </div>
         <div class="form-group">
@@ -70,14 +56,12 @@
             </select>
         </div>
         <button id="uploadBtn" class="btn-post" onclick="startUpload()">อัปโหลดและประกาศขาย</button>
-        <p id="progressText" style="text-align:center; color:var(--accent); font-size:0.8rem;"></p>
+        <p id="progressText" style="text-align:center; color:var(--accent); font-size:0.8rem; margin-top:10px;"></p>
     </div>
-
     <div id="carList"></div>
 </div>
 
 <script>
-    // Config Firebase ของคุณภูผา
     const firebaseConfig = {
         apiKey: "AIzaSyANA3-UyKf-MS2dcmbAuPGt-KtRd0KTmGw",
         authDomain: "note-communitycar.firebaseapp.com",
@@ -90,11 +74,10 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const storage = firebase.storage();
+    const IMGBB_API_KEY = '5a3de96d3f6deddc05d65dc1928e466b'; // คีย์ของคุณภูผา
 
     let isAdmin = false;
 
-    // ฟังก์ชันล็อกอินแอดมิน
     function handleAdmin() {
         if (!isAdmin) {
             const pass = prompt("รหัสผ่านแอดมิน:");
@@ -119,30 +102,7 @@
         if(file) document.getElementById('fileLabel').innerText = "✅ เลือกแล้ว: " + file.name;
     }
 
-    // --- ฟังก์ชันย่อรูปภาพเพื่อกันค้าง ---
-    async function compressImage(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const scale = 1200 / img.width;
-                    canvas.width = 1200;
-                    canvas.height = img.height * scale;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob((blob) => {
-                        resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                    }, 'image/jpeg', 0.8);
-                }
-            }
-        });
-    }
-
-    // --- ฟังก์ชันอัปโหลดหลัก ---
+    // --- ฟังก์ชันอัปโหลดไปยัง Imgbb ---
     async function startUpload() {
         const title = document.getElementById('carTitle').value;
         const price = document.getElementById('carPrice').value;
@@ -154,23 +114,37 @@
         if(!title || !price || !file) return alert("กรุณากรอกข้อมูลให้ครบครับ");
 
         btn.disabled = true;
-        prog.innerText = "กำลังประมวลผลรูปภาพและอัปโหลดไปยัง Cloud...";
+        prog.innerText = "🚀 กำลังส่งรูปไปที่ Imgbb... โปรดรอสักครู่";
 
         try {
-            // ย่อรูปก่อนส่ง
-            const smallFile = await compressImage(file);
-            const storageRef = storage.ref(`cars/${Date.now()}_${file.name}`);
-            const snapshot = await storageRef.put(smallFile);
-            const url = await snapshot.ref.getDownloadURL();
+            // 1. ส่งรูปไป Imgbb
+            const formData = new FormData();
+            formData.append('image', file);
 
-            await db.ref('cars').push({ title, price, img: url, status, time: Date.now() });
-            
-            alert("สำเร็จ!");
-            location.reload();
+            const imgResponse = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                method: 'POST',
+                body: formData
+            });
+            const imgData = await imgResponse.json();
+
+            if (imgData.success) {
+                const url = imgData.data.url;
+
+                // 2. บันทึกข้อมูลลง Firebase
+                await db.ref('cars').push({
+                    title, price, img: url, status, time: Date.now()
+                });
+
+                alert("ประกาศขายสำเร็จ!");
+                location.reload();
+            } else {
+                throw new Error("Imgbb Upload Failed");
+            }
         } catch (err) {
             console.error(err);
             alert("เกิดข้อผิดพลาด: " + err.message);
             btn.disabled = false;
+            prog.innerText = "";
         }
     }
 
@@ -189,7 +163,7 @@
                             <div class="details">
                                 <h2 style="margin:0">${car.title}</h2>
                                 <div class="price">฿ ${car.price}</div>
-                                ${isAdmin ? `<button class="del-btn" onclick="deletePost('${key}', '${car.img}')">🗑️ ลบประกาศ</button>` : ''}
+                                ${isAdmin ? `<button onclick="deletePost('${key}')" style="color:red; cursor:pointer; background:none; border:none; text-decoration:underline;">🗑️ ลบประกาศ</button>` : ''}
                             </div>
                             <div class="comment-box">
                                 <div id="comments-${key}"></div>
@@ -225,20 +199,13 @@
             if(data) {
                 Object.keys(data).forEach(ck => {
                     const c = data[ck];
-                    box.innerHTML += `<div class="comment-item"><b>${c.u}:</b> ${c.m} ${isAdmin ? `<button class="del-btn" onclick="deleteComment('${id}','${ck}')">ลบ</button>` : ''}</div>`;
+                    box.innerHTML += `<div class="comment-item"><b>${c.u}:</b> ${c.m} ${isAdmin ? `<button onclick="deleteComment('${id}','${ck}')" style="color:red; border:none; background:none; cursor:pointer; font-size:0.7rem;">ลบ</button>` : ''}</div>`;
                 });
             }
         });
     }
 
-    async function deletePost(id, url) {
-        if(confirm("ลบโพสต์และรูปภาพถาวร?")) {
-            try { await storage.refFromURL(url).delete(); } catch(e) {}
-            await db.ref(`cars/${id}`).remove();
-            await db.ref(`comments/${id}`).remove();
-        }
-    }
-
+    function deletePost(id) { if(confirm("ลบโพสต์ถาวร?")) db.ref(`cars/${id}`).remove(); }
     function deleteComment(id, ck) { if(confirm("ลบเมนต์?")) db.ref(`comments/${id}/${ck}`).remove(); }
 
     renderCars();
